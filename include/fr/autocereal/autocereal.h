@@ -26,6 +26,8 @@
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
 
+#include <fr/autocereal/ClassSingleton.h>
+
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -36,131 +38,6 @@
 
 namespace fr::autocereal {
 
-  /**
-   * Reflection has to be consteval, so we can't hoist anything with a
-   * std::vector or a std::string over to runtime. Doing so will result
-   * in an error to the effect of "You tried to use something created with
-   * operator new". So if we want to do this in a way we can actually use
-   * it, we have to use an old-timey character array, and we have to
-   * know the sizes of those arrays in advance. If you want to support
-   * UTF8 identifier names or something, you'll need to use a different
-   * character type.
-   *
-   * This does mean each autocereal class will consume
-   * MAX_IDENTIFIER_LENGTH * MAX_CLASS_MEMORY bytes of memory
-   * at a minimum to store the table.
-   *
-   */
-  
-  constexpr size_t MAX_IDENTIFIER_LENGTH = 256;
-  constexpr size_t MAX_CLASS_MEMBERS = 256;
-
-  /**
-   * Define a singleton for any given class, which contains
-   * an array of character arrays to the methods for the class
-   * and the total number of elements in the class
-   *
-   * Appropriate singleton usage check:
-   *
-   * * Will there only ever be one of this type of object? Yes,
-   *   classes can have only one definition, therefore there
-   *   will never be need to be two of this type of singleton
-   *   for a class.
-   * * Is stateless: True. It contains information accumulated
-   *   at compile time that will never change.
-   * * Does not hide dependencies: True.
-   *
-   * I actually really like a singleton here. It guarantees I
-   * won't run any of my reflection functions multiple times
-   * on a class, and it seems great for isolating a lot of
-   * the consteval/constexpr stuff that needs to happen in
-   * the private sections of the code.
-   *
-   * This may be the first time I've ever actually liked
-   * the singleton pattern for something.
-   */
-
-  template <typename Class>
-  class ClassSingleton {
-    constexpr static auto _ctx = std::meta::access_context::unchecked();
-    static constexpr size_t _memberCount = std::meta::nonstatic_data_members_of(^^Class, _ctx).size();
-    // Number of parents this class has
-    static constexpr size_t _baseCount = std::meta::bases_of(^^Class, _ctx).size();
-    static constexpr auto _bases = std::define_static_array(std::meta::bases_of(^^Class, _ctx));
-    
-    std::vector<std::string> _memberNamesStrings;
-
-    // Sets up and returns the membernames array at compile time. I was holding onto this array
-    // originally, but I don't really need it once I stringify it, so I drop it after
-    // I stringify it in the constructor. If we don't care about member names matching in
-    // our JSON and XML, we wouldn't need this array at all. We'd just need to gather
-    // sizes for our various indexing functions.
-
-    consteval auto classMemberNames() {
-      std::array<std::array<char, MAX_IDENTIFIER_LENGTH>, MAX_CLASS_MEMBERS> names;
-
-      auto members = std::meta::nonstatic_data_members_of(^^Class, _ctx);
-      // We do MAX_CLASS_MEMBERS - 1 so we know we'll always hit a null
-      // terminator in this array
-      assert(members.size() < MAX_CLASS_MEMBERS - 1);
-
-      // Clear all names
-      for (int i = 0; i < MAX_CLASS_MEMBERS; ++i) {
-        names[i].fill('\0');
-      }
-
-      for (int memberIndex = 0; memberIndex < members.size(); ++memberIndex) {      
-        auto svName = std::meta::identifier_of(members[memberIndex]);
-        assert(svName.length() < MAX_IDENTIFIER_LENGTH);
-        std::copy(svName.begin(), svName.end(), names[memberIndex].begin());
-      }
-      return names;
-    }
-    
-  public:
-    using ReflectionType = Class;
-
-    template <int index>
-    struct Parent {
-      using Type = [:std::meta::type_of(_bases[index]):];
-    };
-    
-    static const ClassSingleton& instance() {
-      static ClassSingleton<Class> instance;
-      return instance;
-    }
-
-    const std::string& memberAtIndex(int index) const {
-      return _memberNamesStrings[index];
-    }
-    
-    constexpr size_t memberCount() const {
-      return _memberCount;
-    }
-
-    constexpr size_t baseCount() const {
-      return _baseCount;
-    }
-
-    std::vector<std::string> getMemberNames() const {
-      return _memberNamesStrings;
-    }
-
-  private:
-    ClassSingleton() {
-      auto memberNames = classMemberNames();
-      
-      size_t idx = 0;
-      // Restringify array at runtime
-      while(memberNames[idx][0] != '\0') {
-        std::string name(memberNames[idx].data());
-        _memberNamesStrings.push_back(name);
-        idx++;
-      }
-    }
-    ~ClassSingleton() {}
-  };
-  
   /**
    * Retrieve a memberinfo for a member, by index
    *
@@ -205,9 +82,9 @@ namespace fr::autocereal {
   
   template <typename Archive, typename Class, size_t index = 0>
   void saveParents(Archive &ar, const Class& instance) {
-    const fr::autocereal::ClassSingleton<Class>& classInstance = fr::autocereal::ClassSingleton<Class>::instance();    
-    using Parent = typename fr::autocereal::ClassSingleton<Class>::Parent<index>::Type;
-    const fr::autocereal::ClassSingleton<Parent>& parentInstance = fr::autocereal::ClassSingleton<Parent>::instance();    
+    const auto& classInstance = fr::autocereal::ClassSingleton<Class>::instance();
+    const auto& parentInstance = fr::autocereal::ClassSingleton<Class>::template parent_instance<index>();
+    using Parent = typename fr::autocereal::ClassSingleton<Class>::ParentReflectionType<index>;
     const auto& baseInstance = static_cast<const Parent&>(instance);
     saveHelper<Archive, Parent, parentInstance.memberCount()>(ar, baseInstance);
     if constexpr ((index + 1)  < classInstance.baseCount()) {
@@ -226,9 +103,9 @@ namespace fr::autocereal {
 
   template <typename Archive, typename Class, size_t index = 0>
   void loadParents(Archive &ar, Class& instance) {
-    const fr::autocereal::ClassSingleton<Class>& classInstance = fr::autocereal::ClassSingleton<Class>::instance();
-    using Parent = typename fr::autocereal::ClassSingleton<Class>::Parent<index>::Type;
-    const fr::autocereal::ClassSingleton<Parent>& parentInstance = fr::autocereal::ClassSingleton<Parent>::instance();    
+    const auto& classInstance = fr::autocereal::ClassSingleton<Class>::instance();
+    const auto& parentInstance = fr::autocereal::ClassSingleton<Class>::template parent_instance<index>();
+    using Parent = typename fr::autocereal::ClassSingleton<Class>::ParentReflectionType<index>;
     auto& baseInstance = static_cast<Parent&>(instance);
     loadHelper<Archive, Parent, parentInstance.memberCount()>(ar, baseInstance);
     if constexpr ((index + 1)  < classInstance.baseCount()) {
@@ -242,8 +119,8 @@ namespace fr::autocereal {
    * current index as a template parameter and we
    * can't just use a for loop index to do that.
    *
-   * "template for" is also right out, as it wants to
-   * be consteval.
+   * I could probably do this with "template for"
+   * now, but this is working fine.
    */
 
   template <typename Archive, typename Class, size_t memberCount, size_t index>
@@ -262,7 +139,7 @@ namespace fr::autocereal {
     constexpr auto ref_info = fr::autocereal::member_info<Class, index>();
     // Extract the data from the cass
     const auto& constRef = fr::autocereal::member_ref_const<Class, ref_info>(instance);
-    ar(cereal::make_nvp(classInstance.memberAtIndex(index), constRef));
+    ar(cereal::make_nvp(classInstance.memberNames[index], constRef));
 
     // Recursively unwind until all members are archived
     if constexpr ((index + 1)  < classInstance.memberCount()) {
