@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-#include "autocereal.h"
 module;
 
 #include <fr/autocereal/ClassSingleton.h>
