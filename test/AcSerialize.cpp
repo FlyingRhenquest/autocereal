@@ -24,6 +24,29 @@ struct SerialPleh {
   std::string bar;
 };
 
+// Or is this Unicode, I don't know...
+TEST(AcSerializeTest, Utf8) {
+  struct EmojiStruct {
+    std::string 👍;
+  };
+
+  EmojiStruct emoji;
+  emoji.👍 = "Sure thing buddy";
+  EmojiStruct copy;
+  std::stringstream stream;
+  {
+    cereal::JSONOutputArchive archive(stream);
+    archive(emoji);
+  }
+
+  {
+    cereal::JSONInputArchive archive(stream);
+    archive(copy);
+  }
+  ASSERT_EQ(emoji.👍, copy.👍);
+  // 😎👍💩
+}
+
 TEST(AcSerializeTest, SerializeDeserialize) {
 
   SerialPleh pleh{1, "PLEH!"};
@@ -49,15 +72,9 @@ TEST(AcSerializeTest, SerializeDeserialize) {
   
 }
 
-// Fails -- Private member is not serialized (Suspect this is a bug,
-// checked to see if they were changing things so you'd need to friend
-// access_context or something, but that doesn't work. That would actually
-// not be a bad way to control access to those parts though (Cereal does this too)
 TEST(AcSerializeTest, AcSerializePrivates) {
 
   class PrivateParts {
-    friend class cereal::access;
-    friend class std::meta::access_context;
     int _parts;
   public:
     std::string publicThing;

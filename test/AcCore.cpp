@@ -49,10 +49,9 @@ TEST(AcCoreTests, NumberParents) {
 TEST(AcCoreTests, StringArray) {
   auto& classInstance = fr::autocereal::ClassSingleton<Pleh>::instance();
   
-  auto names = classInstance.getMemberNames();
-  ASSERT_EQ(names.size(), 2);
-  ASSERT_EQ(names[0], "foo");
-  ASSERT_EQ(names[1], "bar");
+  ASSERT_EQ(classInstance.memberNames.size(), 2);
+  ASSERT_EQ(classInstance.memberNames[0], "foo");
+  ASSERT_EQ(classInstance.memberNames[1], "bar");
   // Congratulations. We've sucessfully hoisted constexpr data into
   // into run-time!
 }
