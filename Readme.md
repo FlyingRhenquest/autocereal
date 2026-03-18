@@ -24,6 +24,6 @@ No, it just seems to work.
 
 # Using
 
-Just include the header and serialize stuff. See tests/AcSerialize.cpp
-and tests/ToFromFunctions.cpp. ToFromFunctions.cpp outputs what the
+Just include the header and serialize stuff. See `tests/AcSerialize.cpp`
+and `tests/ToFromFunctions.cpp`. `ToFromFunctions.cpp` outputs what the
 JSON and XML output of the serialization function would look like.
