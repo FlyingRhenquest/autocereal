@@ -18,31 +18,11 @@ module;
 
 #include <fr/autocereal/ClassSingleton.h>
 #include <fr/autocereal/autocereal.h>
+#include <fr/autocereal/JsonSchema.h>
 
 export module fr.autocereal;
 
 export namespace fr::autocereal {
-    using fr::autocereal::ClassSingleton;
-    using fr::autocereal::IsInputStream;
-    using fr::autocereal::IsOutputStream;
-    using fr::autocereal::IsInputArchive;
-    using fr::autocereal::IsOutputArchive;
-    using fr::autocereal::member_info;
-    using fr::autocereal::member_ref;
-    using fr::autocereal::member_ref_const;
-    using fr::autocereal::saveHelper;
-    using fr::autocereal::saveParents;
-    using fr::autocereal::loadHelper;
-    using fr::autocereal::loadParents;
-    using fr::autocereal::to_output_archive;
-    using fr::autocereal::from_input_archive;
-    using fr::autocereal::to_json;
-    using fr::autocereal::from_json;
-    using fr::autocereal::to_xml;
-    using fr::autocereal::from_xml;
-}
-
-export namespace cereal {
-    using cereal::save;
-    using cereal::load;
+         using fr::autocereal::ClassSingleton;
+         using fr::autocereal::JsonSchema;
 }

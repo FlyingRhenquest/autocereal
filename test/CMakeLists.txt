@@ -14,6 +14,7 @@ set(TEST_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/AcSerialize.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ClassSingleton.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ToFromFunctions.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/SchemaTest.cpp
 )
 
 add_executable(test

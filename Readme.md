@@ -18,6 +18,24 @@ That means if you're using a third party cereal archiver like the YAML one,
 you could write your own to and from functions for it if you want to extend
 this functionality to that archive type.
 
+Now with JsonSchema! Need a schema for your JSON? JsonSchema! Just create a
+JsonSchema templated with the class you want to generate your schema for and
+then call to_string on that object. JsonSchema currently only generates a
+schema for one class, so it doesn't handle refs, but it works pretty well
+for the simple classes I'm planning to use for data models. The tests
+in SchemaTest.cpp illustrate its usage and contains some expected output.
+
+I'll probably end up adding another object that accumulates JsonSchema
+objects from a typelist or something that could change types in the
+JsonSchema objects it holds such that objects it knows about become
+refs.
+
+Third party contributed module currently only supports ClassSingleton
+and JsonSchema due to current cereal limitations. I also haven't
+tested it beyond verifying that it compiles now. I can probably
+add the various to/from functions to it, but I'm not using modules
+and don't really want to write the tests for them right now.
+
 # Limitations
 
 No, it just seems to work.

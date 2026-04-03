@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+#pragma once
+
 #include <meta>
 #include <ranges>
 #include <string>
@@ -42,7 +44,7 @@ namespace fr::autocereal {
     // to iterate through the base classes to retrieve those.
     constexpr static auto _ctx = std::meta::access_context::unchecked();
     static constexpr size_t _baseCount = std::meta::bases_of(^^Class, _ctx).size();
-    static constexpr size_t _memberCount = std::meta::nonstatic_data_members_of(^^Class, _ctx).size();
+    static constexpr size_t _memberCount = std::meta::is_class_type(^^Class) ? std::meta::nonstatic_data_members_of(^^Class, _ctx).size() : 0;
 
   public:
     // You can access parent types via this template
@@ -65,7 +67,7 @@ namespace fr::autocereal {
       static ClassSingleton<Class> instance;
       return instance;
     }
-
+    
     /**
      * Get parent ClassSingletons by index
      */
@@ -75,6 +77,17 @@ namespace fr::autocereal {
       // Make sure you're specifying an index that actually exists
       static_assert(index < _baseCount);
       return ClassSingleton<ParentReflectionType<index>>::instance();
+    }
+
+    /**
+     * Get parent info -- This will probably usually be a namespace
+     * but if you have a class defined inside another class or
+     * something like that, the info of the containing class should
+     * be returned.
+     */
+
+    constexpr auto parent() const {
+      return parent_of(^^Class);
     }
     
     /**
@@ -104,7 +117,7 @@ namespace fr::autocereal {
     }
 
     static constexpr std::string_view className() {
-      return std::meta::identifier_of(^^Class);
+      return std::meta::has_identifier(^^Class) ? std::meta::identifier_of(^^Class) : std::meta::display_string_of(^^Class);
     }
 
     /**

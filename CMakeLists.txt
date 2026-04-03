@@ -15,6 +15,13 @@ find_package(cereal CONFIG REQUIRED)
 if (AUTOCRUD_BUILD_MODULES)
   add_library(autocereal)
   add_library(FR::autocereal ALIAS autocereal)
+
+  target_include_directories(autocereal PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+
+  target_link_libraries(autocereal PUBLIC cereal::cereal)
   
   target_sources(autocereal
     PUBLIC
@@ -24,14 +31,15 @@ if (AUTOCRUD_BUILD_MODULES)
 else()
   add_library(autocereal INTERFACE)
   add_library(FR::autocereal ALIAS autocereal)
+  
+  target_include_directories(autocereal INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+
+  target_link_libraries(autocereal INTERFACE cereal::cereal)
+  
 endif()
-
-target_include_directories(autocereal INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-
-target_link_libraries(autocereal INTERFACE cereal::cereal)
 
 target_compile_features(autocereal INTERFACE cxx_std_26)
 
