@@ -1,3 +1,5 @@
+
+
 # autocereal
 
 This is a C++26 project which I'm currently using with a freshly-built gcc-16.
@@ -42,6 +44,6 @@ No, it just seems to work.
 
 # Using
 
-Just include the header and serialize stuff. See `tests/AcSerialize.cpp`
+Just include the header `fr/autocereal/autocereal.h` and serialize stuff. See `tests/AcSerialize.cpp`
 and `tests/ToFromFunctions.cpp`. `ToFromFunctions.cpp` outputs what the
 JSON and XML output of the serialization function would look like.
